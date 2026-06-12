@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ScanLine, Upload, Check } from "lucide-react";
+import { Loader2, ScanLine, Upload, Check, Refrigerator, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { addDays } from "@/lib/expiry";
+
+type Mode = "receipt" | "fridge";
 
 interface ParsedItem {
   name: string;
@@ -31,10 +33,16 @@ async function fileToBase64(file: File): Promise<{ base64: string; mimeType: str
 const Scan = () => {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<Mode>("receipt");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [items, setItems] = useState<ParsedItem[] | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setItems(null);
+    setPreviewUrl(null);
+  };
 
   const handleFile = async (file: File) => {
     setItems(null);
@@ -42,13 +50,18 @@ const Scan = () => {
     setScanning(true);
     try {
       const { base64, mimeType } = await fileToBase64(file);
-      const { data, error } = await supabase.functions.invoke("scan-receipt", {
+      const fn = mode === "receipt" ? "scan-receipt" : "scan-fridge";
+      const { data, error } = await supabase.functions.invoke(fn, {
         body: { imageBase64: base64, mimeType },
       });
       if (error) throw error;
       const parsed = (data?.items ?? []) as Array<Omit<ParsedItem, "selected">>;
       if (parsed.length === 0) {
-        toast.warning("No items found. Try a clearer photo of the receipt.");
+        toast.warning(
+          mode === "receipt"
+            ? "No items found. Try a clearer receipt photo."
+            : "No food spotted. Try a brighter fridge photo.",
+        );
       } else {
         toast.success(`Found ${parsed.length} item${parsed.length === 1 ? "" : "s"}`);
       }
@@ -85,7 +98,7 @@ const Scan = () => {
       quantity: it.quantity || null,
       estimated_shelf_life_days: it.estimated_shelf_life_days,
       expiry_date: addDays(it.estimated_shelf_life_days),
-      source: "receipt",
+      source: mode,
     }));
     const { error } = await supabase.from("pantry_items").insert(rows);
     setSaving(false);
@@ -97,47 +110,86 @@ const Scan = () => {
     navigate("/");
   };
 
+  const ModeChip = ({ value, icon: Icon, label }: { value: Mode; icon: typeof ScanLine; label: string }) => (
+    <button
+      type="button"
+      onClick={() => {
+        setMode(value);
+        reset();
+      }}
+      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-colors border ${
+        mode === value
+          ? "bg-primary text-primary-foreground border-primary shadow-soft"
+          : "bg-card text-muted-foreground border-border hover:text-foreground"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
+  );
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <ScanLine className="h-6 w-6 text-primary" /> Scan a receipt
+      <header className="space-y-2">
+        <p className="font-hand text-2xl text-accent leading-none">Add to the pantry</p>
+        <h1 className="font-display text-4xl tracking-tight flex items-center gap-3">
+          <ScanLine className="h-7 w-7 text-primary" /> Scan
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Upload a photo of your grocery receipt. We'll read the items and estimate how long
-          each one stays fresh.
+        <p className="text-sm text-muted-foreground italic">
+          Snap a receipt or peek inside the fridge — we'll add what we see.
         </p>
+        <hr className="rule-divider" />
       </header>
 
-      <Card className="p-6 bg-gradient-warm border-0 shadow-soft">
+      <div className="flex gap-2">
+        <ModeChip value="receipt" icon={ReceiptText} label="Receipt" />
+        <ModeChip value="fridge" icon={Refrigerator} label="Fridge photo" />
+      </div>
+
+      <Card className="paper-card p-6 relative">
+        <span className="tape" />
         <div className="flex flex-col items-center text-center gap-4 py-6">
           {previewUrl ? (
             <img
               src={previewUrl}
-              alt="Receipt preview"
-              className="max-h-64 rounded-lg shadow-soft object-contain bg-card"
+              alt={mode === "receipt" ? "Receipt preview" : "Fridge preview"}
+              className="max-h-64 rounded-md shadow-soft object-contain bg-card border border-border"
             />
           ) : (
-            <div className="h-24 w-24 rounded-full bg-card flex items-center justify-center shadow-soft">
-              <ScanLine className="h-10 w-10 text-primary" />
+            <div className="h-24 w-24 rounded-full bg-card border border-border flex items-center justify-center shadow-soft">
+              {mode === "receipt" ? (
+                <ReceiptText className="h-10 w-10 text-primary" />
+              ) : (
+                <Refrigerator className="h-10 w-10 text-primary" />
+              )}
             </div>
           )}
           <div className="flex gap-2 flex-wrap justify-center">
             <Button onClick={() => fileRef.current?.click()} variant="hero" size="lg" disabled={scanning}>
               {scanning ? <Loader2 className="animate-spin" /> : <Upload />}
-              {previewUrl ? "Choose another" : "Upload receipt photo"}
+              {previewUrl
+                ? "Choose another"
+                : mode === "receipt"
+                  ? "Upload receipt"
+                  : "Upload fridge photo"}
             </Button>
           </div>
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={onPick}
           />
           {scanning && (
-            <p className="text-sm text-muted-foreground">Reading receipt with AI…</p>
+            <p className="text-sm text-muted-foreground italic">
+              {mode === "receipt" ? "Reading receipt…" : "Looking through your fridge…"}
+            </p>
           )}
+          <p className="text-xs text-muted-foreground/80 max-w-md">
+            On mobile, this opens your camera — take a fresh photo or pick one from your gallery.
+          </p>
         </div>
       </Card>
 
@@ -145,8 +197,8 @@ const Scan = () => {
         <section className="space-y-3 animate-fade-in">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Review items</h2>
-              <p className="text-xs text-muted-foreground">
+              <h2 className="font-display text-2xl">Review items</h2>
+              <p className="text-xs text-muted-foreground italic">
                 Tap to deselect, edit names or expiry days as needed.
               </p>
             </div>
@@ -160,7 +212,7 @@ const Scan = () => {
             {items.map((it, i) => (
               <Card
                 key={i}
-                className={`p-3 flex items-center gap-3 transition-colors ${
+                className={`paper-card p-3 flex items-center gap-3 transition-opacity ${
                   it.selected ? "" : "opacity-50"
                 }`}
               >
@@ -179,7 +231,7 @@ const Scan = () => {
                   value={it.quantity ?? ""}
                   onChange={(e) => updateField(i, "quantity", e.target.value || null)}
                   placeholder="qty"
-                  className="w-16 bg-transparent text-xs text-muted-foreground outline-none focus:underline text-right"
+                  className="w-20 bg-transparent text-xs text-muted-foreground outline-none focus:underline text-right"
                 />
                 <div className="flex items-center gap-1 text-xs">
                   <input
