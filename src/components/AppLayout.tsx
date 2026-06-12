@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ScanLine, Refrigerator, ChefHat, Leaf } from "lucide-react";
+import { ScanLine, Refrigerator, ChefHat, BookOpen, Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ExpiryBanner from "@/components/ExpiryBanner";
 
@@ -7,18 +7,22 @@ const navItems = [
   { to: "/", label: "Pantry", icon: Refrigerator, end: true },
   { to: "/scan", label: "Scan", icon: ScanLine },
   { to: "/recipes", label: "Recipes", icon: ChefHat },
+  { to: "/cookbook", label: "Cookbook", icon: BookOpen },
 ];
 
 const AppLayout = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border bg-card/70 backdrop-blur sticky top-0 z-30">
-        <div className="container flex items-center justify-between h-14">
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-30">
+        <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-fresh text-primary-foreground">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-fresh text-primary-foreground shadow-soft">
               <Leaf className="h-4 w-4" />
             </span>
-            <span className="font-semibold tracking-tight">FreshTrack</span>
+            <div className="leading-tight">
+              <p className="font-display text-xl tracking-tight">FreshTrack</p>
+              <p className="font-hand text-sm text-accent -mt-1">a kitchen journal</p>
+            </div>
           </div>
           <nav className="hidden sm:flex items-center gap-1">
             {navItems.map((item) => (
@@ -28,7 +32,7 @@ const AppLayout = () => {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    "px-3 py-1.5 rounded-md text-sm font-medium transition-colors font-serif",
                     isActive
                       ? "bg-primary-soft text-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-secondary",
@@ -48,9 +52,8 @@ const AppLayout = () => {
         <Outlet />
       </main>
 
-      {/* Mobile bottom nav */}
       <nav className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -60,7 +63,7 @@ const AppLayout = () => {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors",
+                    "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground",
                   )
                 }
