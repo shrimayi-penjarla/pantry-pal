@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      cookbook_recipes: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          ingredients: Json
+          is_favorite: boolean
+          prep_minutes: number | null
+          source: string
+          steps: Json
+          title: string
+          updated_at: string
+          uses_items: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          is_favorite?: boolean
+          prep_minutes?: number | null
+          source?: string
+          steps?: Json
+          title: string
+          updated_at?: string
+          uses_items?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          is_favorite?: boolean
+          prep_minutes?: number | null
+          source?: string
+          steps?: Json
+          title?: string
+          updated_at?: string
+          uses_items?: Json
+        }
+        Relationships: []
+      }
       pantry_items: {
         Row: {
           added_on: string
@@ -21,6 +66,7 @@ export type Database = {
           estimated_shelf_life_days: number | null
           expiry_date: string
           id: string
+          image_url: string | null
           name: string
           quantity: string | null
           source: string
@@ -31,6 +77,7 @@ export type Database = {
           estimated_shelf_life_days?: number | null
           expiry_date: string
           id?: string
+          image_url?: string | null
           name: string
           quantity?: string | null
           source?: string
@@ -41,6 +88,7 @@ export type Database = {
           estimated_shelf_life_days?: number | null
           expiry_date?: string
           id?: string
+          image_url?: string | null
           name?: string
           quantity?: string | null
           source?: string

@@ -7,6 +7,7 @@ import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index.tsx";
 import Scan from "./pages/Scan.tsx";
 import Recipes from "./pages/Recipes.tsx";
+import Cookbook from "./pages/Cookbook.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/scan" element={<Scan />} />
             <Route path="/recipes" element={<Recipes />} />
+            <Route path="/cookbook" element={<Cookbook />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

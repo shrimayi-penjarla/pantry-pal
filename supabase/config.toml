@@ -3,5 +3,8 @@ project_id = "pzoqlzigqbsrlkewhbod"
 [functions.scan-receipt]
 verify_jwt = false
 
+[functions.scan-fridge]
+verify_jwt = false
+
 [functions.suggest-recipes]
 verify_jwt = false

@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
-import heroImage from "@/assets/hero-groceries.jpg";
 
 interface PantryItem {
   id: string;
@@ -57,7 +56,7 @@ const Pantry = () => {
 
   const sectionTitles: Record<string, string> = {
     expired: "Already expired",
-    urgent: "Use today / tomorrow",
+    urgent: "Use today or tomorrow",
     soon: "Use this week",
     fresh: "Plenty of time",
   };
@@ -65,62 +64,57 @@ const Pantry = () => {
   return (
     <div className="space-y-8">
       {items.length === 0 && !loading && (
-        <Card className="overflow-hidden border-0 shadow-lifted">
-          <div className="grid sm:grid-cols-2">
-            <div className="p-8 sm:p-10 flex flex-col justify-center gap-4">
-              <Badge className="w-fit bg-primary-soft text-primary hover:bg-primary-soft border-0">
-                Welcome
-              </Badge>
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-                Your pantry, but smarter.
-              </h1>
-              <p className="text-muted-foreground">
-                Snap a grocery receipt and we'll add every item with an estimated
-                expiry date — then suggest recipes for what needs to be used first.
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button asChild variant="hero" size="lg">
-                  <Link to="/scan">
-                    <ScanLine /> Scan a receipt
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link to="/recipes">
-                    <ChefHat /> See recipes
-                  </Link>
-                </Button>
-              </div>
-            </div>
-            <div className="hidden sm:block bg-gradient-warm">
-              <img
-                src={heroImage}
-                alt="Fresh groceries arranged on a warm cream surface"
-                width={1536}
-                height={896}
-                className="h-full w-full object-cover"
-              />
+        <Card className="paper-card overflow-hidden relative">
+          <span className="tape" />
+          <div className="p-8 sm:p-10 flex flex-col gap-4 text-center max-w-xl mx-auto">
+            <Badge className="w-fit mx-auto bg-primary-soft text-primary hover:bg-primary-soft border border-primary/30">
+              Welcome to the kitchen
+            </Badge>
+            <p className="font-hand text-3xl text-accent leading-none">a fresh start</p>
+            <h1 className="font-display text-4xl sm:text-5xl tracking-tight">
+              Your pantry, kept like a recipe book.
+            </h1>
+            <p className="text-muted-foreground italic">
+              Scan a grocery receipt or snap a photo inside your fridge — we'll add every
+              item with an estimated expiry date and suggest what to cook first.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2 justify-center">
+              <Button asChild variant="hero" size="lg">
+                <Link to="/scan">
+                  <ScanLine /> Start scanning
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link to="/recipes">
+                  <ChefHat /> See recipes
+                </Link>
+              </Button>
             </div>
           </div>
         </Card>
       )}
 
-      <section className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Refrigerator className="h-6 w-6 text-primary" /> Your pantry
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {items.length} item{items.length === 1 ? "" : "s"} tracked
-          </p>
+      <section className="space-y-2">
+        <p className="font-hand text-2xl text-accent leading-none">What's in the kitchen</p>
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-4xl tracking-tight flex items-center gap-3">
+              <Refrigerator className="h-7 w-7 text-primary" /> Pantry
+            </h1>
+            <p className="text-sm text-muted-foreground italic mt-1">
+              {items.length} item{items.length === 1 ? "" : "s"} tracked.
+            </p>
+          </div>
+          <Button asChild variant="hero">
+            <Link to="/scan">
+              <Plus /> Add items
+            </Link>
+          </Button>
         </div>
-        <Button asChild variant="hero">
-          <Link to="/scan">
-            <Plus /> Add via receipt
-          </Link>
-        </Button>
+        <hr className="rule-divider" />
       </section>
 
-      {loading && <p className="text-muted-foreground">Loading…</p>}
+      {loading && <p className="text-muted-foreground italic">Opening the larder…</p>}
 
       {!loading &&
         (["expired", "urgent", "soon", "fresh"] as const).map((bucket) => {
@@ -128,8 +122,9 @@ const Pantry = () => {
           if (list.length === 0) return null;
           return (
             <section key={bucket} className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                {sectionTitles[bucket]} · {list.length}
+              <h2 className="font-display text-xl text-foreground/90 flex items-center gap-2">
+                <span>{sectionTitles[bucket]}</span>
+                <span className="font-hand text-2xl text-accent leading-none">· {list.length}</span>
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((it) => {
@@ -137,12 +132,14 @@ const Pantry = () => {
                   return (
                     <Card
                       key={it.id}
-                      className="p-4 flex items-start justify-between gap-3 shadow-soft hover:shadow-lifted transition-shadow"
+                      className="paper-card p-4 flex items-start justify-between gap-3 hover:-translate-y-0.5 transition-transform"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{it.name}</p>
+                        <p className="font-display text-lg leading-tight truncate">{it.name}</p>
                         {it.quantity && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{it.quantity}</p>
+                          <p className="text-xs text-muted-foreground italic mt-0.5">
+                            {it.quantity}
+                          </p>
                         )}
                         <span
                           className={`inline-flex items-center mt-2 text-xs px-2 py-0.5 rounded-full border ${statusClasses(status)}`}

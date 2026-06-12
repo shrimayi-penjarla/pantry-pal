@@ -13,6 +13,11 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['"Cormorant Garamond"', '"Playfair Display"', "Georgia", "serif"],
+        serif: ['"Lora"', "Georgia", "serif"],
+        hand: ['"Caveat"', "cursive"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -72,6 +77,7 @@ export default {
       backgroundImage: {
         "gradient-warm": "var(--gradient-warm)",
         "gradient-fresh": "var(--gradient-fresh)",
+        "gradient-parchment": "var(--gradient-parchment)",
       },
       boxShadow: {
         soft: "var(--shadow-soft)",

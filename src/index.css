@@ -2,97 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Cozy cookbook / scrapbook design system — warm parchment, fresh sage,
+   serif typography. All colors MUST be HSL. */
 
 @layer base {
   :root {
-    /* Warm cream background, deep sage primary, warm orange accent */
-    --background: 38 40% 97%;
-    --foreground: 140 18% 14%;
+    /* Aged parchment background, deep ink foreground, sage primary */
+    --background: 38 45% 92%;
+    --foreground: 28 30% 16%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 140 18% 14%;
+    --card: 38 55% 96%;
+    --card-foreground: 28 30% 16%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 140 18% 14%;
+    --popover: 38 55% 96%;
+    --popover-foreground: 28 30% 16%;
 
-    --primary: 145 38% 28%;
-    --primary-foreground: 38 40% 97%;
-    --primary-soft: 145 32% 92%;
+    /* Fresh sage green — the cookbook's signature accent */
+    --primary: 110 28% 32%;
+    --primary-foreground: 38 55% 96%;
+    --primary-soft: 110 25% 86%;
 
-    --secondary: 38 35% 92%;
-    --secondary-foreground: 140 18% 14%;
+    --secondary: 38 40% 88%;
+    --secondary-foreground: 28 30% 16%;
 
-    --muted: 38 25% 93%;
-    --muted-foreground: 140 8% 42%;
+    --muted: 38 30% 86%;
+    --muted-foreground: 28 15% 38%;
 
-    --accent: 22 88% 55%;
-    --accent-foreground: 0 0% 100%;
-    --accent-soft: 22 80% 94%;
+    /* Warm cookbook red (think old ribbon bookmark) */
+    --accent: 8 60% 45%;
+    --accent-foreground: 38 55% 96%;
+    --accent-soft: 8 55% 92%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 90% 12%;
+    --warning: 32 78% 48%;
+    --warning-foreground: 32 90% 12%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 38 20% 87%;
-    --input: 38 20% 87%;
-    --ring: 145 38% 28%;
+    --border: 32 25% 72%;
+    --input: 32 25% 78%;
+    --ring: 110 28% 32%;
 
-    --radius: 0.85rem;
+    --radius: 0.5rem;
 
-    --gradient-warm: linear-gradient(135deg, hsl(38 60% 95%), hsl(22 70% 92%));
-    --gradient-fresh: linear-gradient(135deg, hsl(145 38% 28%), hsl(155 45% 38%));
-    --shadow-soft: 0 4px 14px -6px hsl(140 18% 14% / 0.12);
-    --shadow-lifted: 0 10px 30px -12px hsl(140 18% 14% / 0.18);
+    /* Parchment textures and decorative gradients */
+    --gradient-parchment: linear-gradient(180deg, hsl(38 55% 95%), hsl(36 45% 90%));
+    --gradient-fresh: linear-gradient(135deg, hsl(110 28% 32%), hsl(120 30% 40%));
+    --gradient-warm: linear-gradient(135deg, hsl(38 55% 95%), hsl(28 50% 88%));
+    --shadow-soft: 0 2px 8px -2px hsl(28 30% 16% / 0.12), 0 1px 0 hsl(38 30% 78%);
+    --shadow-lifted: 0 14px 32px -16px hsl(28 30% 16% / 0.25), 0 2px 0 hsl(32 25% 72%);
+    --shadow-pressed: inset 0 1px 3px hsl(28 30% 16% / 0.12);
 
-    --sidebar-background: 38 40% 97%;
-    --sidebar-foreground: 140 18% 14%;
-    --sidebar-primary: 145 38% 28%;
-    --sidebar-primary-foreground: 38 40% 97%;
-    --sidebar-accent: 38 35% 92%;
-    --sidebar-accent-foreground: 140 18% 14%;
-    --sidebar-border: 38 20% 87%;
-    --sidebar-ring: 145 38% 28%;
+    --sidebar-background: 38 45% 92%;
+    --sidebar-foreground: 28 30% 16%;
+    --sidebar-primary: 110 28% 32%;
+    --sidebar-primary-foreground: 38 55% 96%;
+    --sidebar-accent: 38 40% 88%;
+    --sidebar-accent-foreground: 28 30% 16%;
+    --sidebar-border: 32 25% 72%;
+    --sidebar-ring: 110 28% 32%;
   }
 
   .dark {
-    --background: 140 18% 8%;
-    --foreground: 38 30% 94%;
-    --card: 140 18% 11%;
-    --card-foreground: 38 30% 94%;
-    --popover: 140 18% 11%;
-    --popover-foreground: 38 30% 94%;
-    --primary: 145 45% 55%;
-    --primary-foreground: 140 18% 8%;
-    --primary-soft: 145 30% 18%;
-    --secondary: 140 12% 16%;
-    --secondary-foreground: 38 30% 94%;
-    --muted: 140 12% 16%;
-    --muted-foreground: 38 12% 65%;
-    --accent: 22 88% 60%;
-    --accent-foreground: 140 18% 8%;
-    --accent-soft: 22 40% 18%;
-    --warning: 38 92% 60%;
-    --warning-foreground: 38 90% 12%;
-    --destructive: 0 70% 55%;
+    --background: 28 18% 10%;
+    --foreground: 38 35% 90%;
+    --card: 28 18% 13%;
+    --card-foreground: 38 35% 90%;
+    --popover: 28 18% 13%;
+    --popover-foreground: 38 35% 90%;
+    --primary: 110 35% 60%;
+    --primary-foreground: 28 18% 10%;
+    --primary-soft: 110 20% 22%;
+    --secondary: 28 14% 18%;
+    --secondary-foreground: 38 35% 90%;
+    --muted: 28 14% 18%;
+    --muted-foreground: 38 15% 65%;
+    --accent: 8 65% 58%;
+    --accent-foreground: 28 18% 10%;
+    --accent-soft: 8 30% 22%;
+    --warning: 32 80% 60%;
+    --warning-foreground: 32 90% 10%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 140 12% 20%;
-    --input: 140 12% 20%;
-    --ring: 145 45% 55%;
-    --gradient-warm: linear-gradient(135deg, hsl(140 18% 12%), hsl(22 30% 18%));
-    --gradient-fresh: linear-gradient(135deg, hsl(145 45% 30%), hsl(155 40% 22%));
-    --sidebar-background: 140 18% 8%;
-    --sidebar-foreground: 38 30% 94%;
-    --sidebar-primary: 145 45% 55%;
-    --sidebar-primary-foreground: 140 18% 8%;
-    --sidebar-accent: 140 12% 16%;
-    --sidebar-accent-foreground: 38 30% 94%;
-    --sidebar-border: 140 12% 20%;
-    --sidebar-ring: 145 45% 55%;
+    --border: 28 14% 24%;
+    --input: 28 14% 24%;
+    --ring: 110 35% 60%;
+    --gradient-parchment: linear-gradient(180deg, hsl(28 18% 13%), hsl(28 18% 10%));
+    --gradient-fresh: linear-gradient(135deg, hsl(110 35% 30%), hsl(120 35% 22%));
+    --gradient-warm: linear-gradient(135deg, hsl(28 18% 14%), hsl(28 25% 20%));
+    --sidebar-background: 28 18% 10%;
+    --sidebar-foreground: 38 35% 90%;
+    --sidebar-primary: 110 35% 60%;
+    --sidebar-primary-foreground: 28 18% 10%;
+    --sidebar-accent: 28 14% 18%;
+    --sidebar-accent-foreground: 38 35% 90%;
+    --sidebar-border: 28 14% 24%;
+    --sidebar-ring: 110 35% 60%;
   }
 }
 
@@ -103,5 +108,57 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: "Lora", Georgia, "Times New Roman", serif;
+    background-image:
+      radial-gradient(circle at 18% 12%, hsl(28 40% 80% / 0.35) 0, transparent 38%),
+      radial-gradient(circle at 82% 88%, hsl(110 20% 70% / 0.28) 0, transparent 42%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.12  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  .font-hand {
+    font-family: "Caveat", "Bradley Hand", cursive;
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  /* Recipe card paper — looks like a card glued into a scrapbook */
+  .paper-card {
+    background-color: hsl(var(--card));
+    background-image:
+      linear-gradient(180deg, hsl(38 55% 97%) 0%, hsl(36 45% 92%) 100%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.2  0 0 0 0 0.1  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-blend-mode: multiply;
+    border: 1px solid hsl(32 25% 72%);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Cookbook-style divider — thin double line */
+  .rule-divider {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--border));
+    height: 4px;
+  }
+
+  /* Hand-drawn-feeling tape strip used on scrapbook elements */
+  .tape {
+    position: absolute;
+    width: 64px;
+    height: 18px;
+    background: hsl(45 80% 80% / 0.7);
+    border: 1px solid hsl(45 50% 65% / 0.5);
+    transform: rotate(-4deg);
+    top: -10px;
+    left: 50%;
+    margin-left: -32px;
+    box-shadow: 0 1px 2px hsl(28 30% 16% / 0.15);
   }
 }
