@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { addDays } from "@/lib/expiry";
+import { useAuth } from "@/hooks/useAuth";
 
 type Mode = "receipt" | "fridge";
 
@@ -32,6 +33,7 @@ async function fileToBase64(file: File): Promise<{ base64: string; mimeType: str
 
 const Scan = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<Mode>("receipt");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -86,7 +88,7 @@ const Scan = () => {
     setItems((curr) => curr?.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) ?? null);
 
   const saveAll = async () => {
-    if (!items) return;
+    if (!items || !user) return;
     const chosen = items.filter((i) => i.selected && i.name.trim());
     if (chosen.length === 0) {
       toast.error("Select at least one item");
@@ -94,6 +96,7 @@ const Scan = () => {
     }
     setSaving(true);
     const rows = chosen.map((it) => ({
+      user_id: user.id,
       name: it.name.trim(),
       quantity: it.quantity || null,
       estimated_shelf_life_days: it.estimated_shelf_life_days,
@@ -107,7 +110,7 @@ const Scan = () => {
       return;
     }
     toast.success(`Added ${rows.length} item${rows.length === 1 ? "" : "s"} to pantry`);
-    navigate("/");
+    navigate("/pantry");
   };
 
   const ModeChip = ({ value, icon: Icon, label }: { value: Mode; icon: typeof ScanLine; label: string }) => (

@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadRecipeImage } from "@/lib/recipeStorage";
 import { toast } from "sonner";
 import RecipeImage from "./RecipeImage";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface EditableRecipe {
   id?: string;
@@ -48,6 +49,7 @@ const blank: EditableRecipe = {
 };
 
 const RecipeEditorDialog = ({ open, initial, mode, onClose, onSaved }: Props) => {
+  const { user } = useAuth();
   const [form, setForm] = useState<EditableRecipe>(blank);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -95,8 +97,12 @@ const RecipeEditorDialog = ({ open, initial, mode, onClose, onSaved }: Props) =>
       toast.error("Please give the recipe a title");
       return;
     }
+    if (!user) {
+      toast.error("Please sign in first");
+      return;
+    }
     setSaving(true);
-    const payload = {
+    const basePayload = {
       title,
       description: form.description?.trim() || null,
       ingredients: form.ingredients.map((s) => s.trim()).filter(Boolean),
@@ -109,8 +115,10 @@ const RecipeEditorDialog = ({ open, initial, mode, onClose, onSaved }: Props) =>
     };
     const { error } =
       mode === "edit" && form.id
-        ? await supabase.from("cookbook_recipes").update(payload).eq("id", form.id)
-        : await supabase.from("cookbook_recipes").insert(payload);
+        ? await supabase.from("cookbook_recipes").update(basePayload).eq("id", form.id)
+        : await supabase
+            .from("cookbook_recipes")
+            .insert({ ...basePayload, user_id: user.id });
     setSaving(false);
     if (error) {
       toast.error(error.message);
