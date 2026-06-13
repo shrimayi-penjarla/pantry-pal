@@ -27,6 +27,7 @@ export type Database = {
           steps: Json
           title: string
           updated_at: string
+          user_id: string
           uses_items: Json
         }
         Insert: {
@@ -41,6 +42,7 @@ export type Database = {
           steps?: Json
           title: string
           updated_at?: string
+          user_id: string
           uses_items?: Json
         }
         Update: {
@@ -55,6 +57,7 @@ export type Database = {
           steps?: Json
           title?: string
           updated_at?: string
+          user_id?: string
           uses_items?: Json
         }
         Relationships: []
@@ -70,6 +73,7 @@ export type Database = {
           name: string
           quantity: string | null
           source: string
+          user_id: string
         }
         Insert: {
           added_on?: string
@@ -81,6 +85,7 @@ export type Database = {
           name: string
           quantity?: string | null
           source?: string
+          user_id: string
         }
         Update: {
           added_on?: string
@@ -92,6 +97,7 @@ export type Database = {
           name?: string
           quantity?: string | null
           source?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -104,6 +110,7 @@ export type Database = {
           prep_minutes: number | null
           steps: Json
           title: string
+          user_id: string
           uses_items: Json
         }
         Insert: {
@@ -114,6 +121,7 @@ export type Database = {
           prep_minutes?: number | null
           steps?: Json
           title: string
+          user_id: string
           uses_items?: Json
         }
         Update: {
@@ -124,7 +132,44 @@ export type Database = {
           prep_minutes?: number | null
           steps?: Json
           title?: string
+          user_id?: string
           uses_items?: Json
+        }
+        Relationships: []
+      }
+      shopping_list_items: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          quantity: string | null
+          reason: string | null
+          status: string
+          suggested_from_pantry_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          quantity?: string | null
+          reason?: string | null
+          status?: string
+          suggested_from_pantry_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          quantity?: string | null
+          reason?: string | null
+          status?: string
+          suggested_from_pantry_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
