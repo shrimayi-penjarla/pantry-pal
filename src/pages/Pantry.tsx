@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, Plus, ScanLine, ChefHat, Refrigerator } from "lucide-react";
+import { Trash2, Plus, ScanLine, ChefHat, Refrigerator, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PantryItem {
   id: string;
@@ -17,8 +19,12 @@ interface PantryItem {
 }
 
 const Pantry = () => {
+  const { user } = useAuth();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -26,26 +32,56 @@ const Pantry = () => {
       .from("pantry_items")
       .select("id, name, quantity, expiry_date, added_on")
       .order("expiry_date", { ascending: true });
-    if (error) {
-      toast.error("Failed to load pantry");
-    } else {
-      setItems(data ?? []);
-    }
+    if (error) toast.error("Failed to load pantry");
+    else setItems(data ?? []);
     setLoading(false);
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    if (user) load();
+  }, [user]);
 
-  const handleDelete = async (id: string) => {
+  const suggestForShopping = async (item: PantryItem) => {
+    if (!user) return;
+    const reason = daysUntil(item.expiry_date) < 0 ? "expired" : "removed";
+    await supabase.from("shopping_list_items").insert({
+      user_id: user.id,
+      name: item.name,
+      quantity: item.quantity,
+      status: "suggested",
+      reason,
+      suggested_from_pantry_id: item.id,
+    });
+  };
+
+  const handleDelete = async (item: PantryItem) => {
     const prev = items;
-    setItems((x) => x.filter((i) => i.id !== id));
-    const { error } = await supabase.from("pantry_items").delete().eq("id", id);
+    setItems((x) => x.filter((i) => i.id !== item.id));
+    const { error } = await supabase.from("pantry_items").delete().eq("id", item.id);
     if (error) {
       setItems(prev);
       toast.error("Could not remove item");
+      return;
     }
+    await suggestForShopping(item);
+    toast.success(`Removed — added "${item.name}" to shopping suggestions`);
+  };
+
+  const startEdit = (it: PantryItem) => {
+    setEditingId(it.id);
+    setEditName(it.name);
+    setEditDate(it.expiry_date);
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const updates = { name: editName.trim() || "Item", expiry_date: editDate };
+    setItems((x) => x.map((i) => (i.id === editingId ? { ...i, ...updates } : i)));
+    const { error } = await supabase.from("pantry_items").update(updates).eq("id", editingId);
+    if (error) toast.error(error.message);
+    setEditingId(null);
   };
 
   const grouped = useMemo(() => {
@@ -80,14 +116,10 @@ const Pantry = () => {
             </p>
             <div className="flex flex-wrap gap-2 pt-2 justify-center">
               <Button asChild variant="hero" size="lg">
-                <Link to="/scan">
-                  <ScanLine /> Start scanning
-                </Link>
+                <Link to="/scan"><ScanLine /> Start scanning</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link to="/recipes">
-                  <ChefHat /> See recipes
-                </Link>
+                <Link to="/recipes"><ChefHat /> See recipes</Link>
               </Button>
             </div>
           </div>
@@ -106,9 +138,7 @@ const Pantry = () => {
             </p>
           </div>
           <Button asChild variant="hero">
-            <Link to="/scan">
-              <Plus /> Add items
-            </Link>
+            <Link to="/scan"><Plus /> Add items</Link>
           </Button>
         </div>
         <hr className="rule-divider" />
@@ -129,32 +159,45 @@ const Pantry = () => {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((it) => {
                   const status = expiryStatus(it.expiry_date);
+                  const editing = editingId === it.id;
                   return (
-                    <Card
-                      key={it.id}
-                      className="paper-card p-4 flex items-start justify-between gap-3 hover:-translate-y-0.5 transition-transform"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-display text-lg leading-tight truncate">{it.name}</p>
-                        {it.quantity && (
-                          <p className="text-xs text-muted-foreground italic mt-0.5">
-                            {it.quantity}
-                          </p>
+                    <Card key={it.id} className="paper-card p-4 flex items-start justify-between gap-3 hover:-translate-y-0.5 transition-transform">
+                      <div className="min-w-0 flex-1">
+                        {editing ? (
+                          <div className="space-y-2">
+                            <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                            <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="hero" onClick={saveEdit}>
+                                <Check className="h-4 w-4" /> Save
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                                <X className="h-4 w-4" /> Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-display text-lg leading-tight truncate">{it.name}</p>
+                            {it.quantity && (
+                              <p className="text-xs text-muted-foreground italic mt-0.5">{it.quantity}</p>
+                            )}
+                            <span className={`inline-flex items-center mt-2 text-xs px-2 py-0.5 rounded-full border ${statusClasses(status)}`}>
+                              {expiryLabel(it.expiry_date)}
+                            </span>
+                          </>
                         )}
-                        <span
-                          className={`inline-flex items-center mt-2 text-xs px-2 py-0.5 rounded-full border ${statusClasses(status)}`}
-                        >
-                          {expiryLabel(it.expiry_date)}
-                        </span>
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(it.id)}
-                        aria-label={`Remove ${it.name}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
+                      {!editing && (
+                        <div className="flex flex-col gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => startEdit(it)} aria-label={`Edit ${it.name}`}>
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(it)} aria-label={`Remove ${it.name}`}>
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      )}
                     </Card>
                   );
                 })}

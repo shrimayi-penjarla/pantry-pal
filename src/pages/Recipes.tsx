@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star } from "lucide-react";
+import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Recipe {
   title: string;
@@ -17,6 +18,9 @@ interface Recipe {
   uses_items: string[];
   ingredients: string[];
   steps: string[];
+  image_url?: string | null;
+  source?: "ai" | "cookbook";
+  cookbook_id?: string;
 }
 
 interface PantrySlim {
@@ -25,19 +29,39 @@ interface PantrySlim {
   expiry_date: string;
 }
 
+interface CookbookRow {
+  id: string;
+  title: string;
+  description: string | null;
+  ingredients: unknown;
+  steps: unknown;
+  uses_items: unknown;
+  prep_minutes: number | null;
+  image_url: string | null;
+}
+
+const toStrArr = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map((x) => String(x)) : [];
+
 const Recipes = () => {
+  const { user } = useAuth();
   const [pantry, setPantry] = useState<PantrySlim[]>([]);
+  const [cookbook, setCookbook] = useState<CookbookRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [aiRecipes, setAiRecipes] = useState<Recipe[]>([]);
   const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<Recipe | null>(null);
 
-  const refreshSaved = async () => {
-    const { data } = await supabase.from("cookbook_recipes").select("title");
+  const refreshCookbook = async () => {
+    const { data } = await supabase
+      .from("cookbook_recipes")
+      .select("id, title, description, ingredients, steps, uses_items, prep_minutes, image_url");
+    setCookbook((data ?? []) as CookbookRow[]);
     setSavedTitles(new Set((data ?? []).map((r) => r.title.toLowerCase())));
   };
 
   useEffect(() => {
+    if (!user) return;
     (async () => {
       const { data } = await supabase
         .from("pantry_items")
@@ -45,8 +69,48 @@ const Recipes = () => {
         .order("expiry_date", { ascending: true });
       setPantry(data ?? []);
     })();
-    refreshSaved();
-  }, []);
+    refreshCookbook();
+  }, [user]);
+
+  // Match cookbook recipes that use pantry items (prioritize those using soon-to-expire)
+  const cookbookMatches: Recipe[] = useMemo(() => {
+    if (cookbook.length === 0 || pantry.length === 0) return [];
+    const pantryLower = pantry.map((p) => ({
+      name: p.name.toLowerCase(),
+      days: daysUntil(p.expiry_date),
+    }));
+    return cookbook
+      .map((c) => {
+        const haystack = [
+          ...toStrArr(c.uses_items),
+          ...toStrArr(c.ingredients),
+        ].join(" ").toLowerCase();
+        const matched: string[] = [];
+        let urgencyScore = 0;
+        for (const p of pantryLower) {
+          if (p.name && haystack.includes(p.name)) {
+            matched.push(p.name);
+            // Lower days = higher priority (negative days = expired, big bonus)
+            urgencyScore += Math.max(0, 14 - p.days);
+          }
+        }
+        return { c, matched, urgencyScore };
+      })
+      .filter((x) => x.matched.length > 0)
+      .sort((a, b) => b.urgencyScore - a.urgencyScore)
+      .slice(0, 4)
+      .map(({ c, matched }) => ({
+        title: c.title,
+        description: c.description ?? "From your cookbook",
+        prep_minutes: c.prep_minutes ?? 0,
+        uses_items: matched,
+        ingredients: toStrArr(c.ingredients),
+        steps: toStrArr(c.steps),
+        image_url: c.image_url,
+        source: "cookbook" as const,
+        cookbook_id: c.id,
+      }));
+  }, [cookbook, pantry]);
 
   const generate = async () => {
     if (pantry.length === 0) {
@@ -63,7 +127,7 @@ const Recipes = () => {
         body: { items },
       });
       if (error) throw error;
-      setRecipes((data?.recipes ?? []) as Recipe[]);
+      setAiRecipes(((data?.recipes ?? []) as Recipe[]).map((r) => ({ ...r, source: "ai" })));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not generate recipes";
       toast.error(msg);
@@ -73,7 +137,9 @@ const Recipes = () => {
   };
 
   const favorite = async (r: Recipe) => {
+    if (!user) return;
     const { error } = await supabase.from("cookbook_recipes").insert({
+      user_id: user.id,
       title: r.title,
       description: r.description,
       ingredients: r.ingredients,
@@ -88,13 +154,26 @@ const Recipes = () => {
       return;
     }
     toast.success(`"${r.title}" added to your cookbook`);
-    refreshSaved();
+    refreshCookbook();
   };
 
   const expiringSoon = pantry
     .map((p) => ({ ...p, d: daysUntil(p.expiry_date) }))
     .filter((p) => p.d <= 5)
     .slice(0, 6);
+
+  // Cookbook matches first, then AI recipes — dedupe by lower-case title
+  const combined: Recipe[] = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Recipe[] = [];
+    for (const r of [...cookbookMatches, ...aiRecipes]) {
+      const key = r.title.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(r);
+    }
+    return out;
+  }, [cookbookMatches, aiRecipes]);
 
   return (
     <div className="space-y-6">
@@ -106,12 +185,12 @@ const Recipes = () => {
               <ChefHat className="h-7 w-7 text-primary" /> Recipe ideas
             </h1>
             <p className="text-sm text-muted-foreground italic mt-1">
-              Suggestions for what's expiring soonest in your pantry.
+              Suggestions for what's expiring soonest — favorites from your cookbook first.
             </p>
           </div>
           <Button onClick={generate} disabled={loading || pantry.length === 0} variant="hero" size="lg">
             {loading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {recipes.length === 0 ? "Suggest recipes" : "Refresh suggestions"}
+            {aiRecipes.length === 0 ? "Suggest recipes" : "Refresh suggestions"}
           </Button>
         </div>
         <hr className="rule-divider" />
@@ -155,10 +234,11 @@ const Recipes = () => {
         </div>
       )}
 
-      {!loading && recipes.length > 0 && (
+      {!loading && combined.length > 0 && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
-          {recipes.map((r, i) => {
+          {combined.map((r, i) => {
             const saved = savedTitles.has(r.title.toLowerCase());
+            const fromCookbook = r.source === "cookbook";
             return (
               <Card
                 key={i}
@@ -166,30 +246,38 @@ const Recipes = () => {
                 onClick={() => setViewing(r)}
               >
                 <div className="aspect-[4/3] overflow-hidden relative">
-                  <RecipeImage alt={r.title} rounded="" />
-                  <button
-                    type="button"
-                    aria-label={saved ? "Already in cookbook" : "Save to cookbook"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!saved) favorite(r);
-                    }}
-                    className="absolute top-2 right-2 h-9 w-9 rounded-full bg-card/95 border border-border flex items-center justify-center hover:scale-110 transition-transform"
-                  >
-                    <Star
-                      className={`h-5 w-5 ${
-                        saved ? "fill-accent text-accent" : "text-muted-foreground"
-                      }`}
-                    />
-                  </button>
+                  <RecipeImage src={r.image_url ?? null} alt={r.title} rounded="" />
+                  {fromCookbook ? (
+                    <span className="absolute top-2 left-2 flex items-center gap-1 font-hand text-base px-2 py-0.5 bg-card/95 border border-border rounded-sm rotate-[-3deg]">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" /> from cookbook
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-label={saved ? "Already in cookbook" : "Save to cookbook"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!saved) favorite(r);
+                      }}
+                      className="absolute top-2 right-2 h-9 w-9 rounded-full bg-card/95 border border-border flex items-center justify-center hover:scale-110 transition-transform"
+                    >
+                      <Star
+                        className={`h-5 w-5 ${
+                          saved ? "fill-accent text-accent" : "text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  )}
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="font-display text-xl leading-tight">{r.title}</h3>
-                    <Badge variant="secondary" className="shrink-0 mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {r.prep_minutes}m
-                    </Badge>
+                    {r.prep_minutes > 0 && (
+                      <Badge variant="secondary" className="shrink-0 mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {r.prep_minutes}m
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground italic line-clamp-2">
                     {r.description}
