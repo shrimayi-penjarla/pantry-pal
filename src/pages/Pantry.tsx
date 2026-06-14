@@ -26,6 +26,43 @@ const Pantry = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newQty, setNewQty] = useState("");
+  const [newDate, setNewDate] = useState(addDays(7));
+  const [adding, setAdding] = useState(false);
+
+  const addManual = async () => {
+    if (!user) return;
+    const name = newName.trim();
+    if (!name) {
+      toast.error("Enter an item name");
+      return;
+    }
+    if (!newDate) {
+      toast.error("Pick an expiry date");
+      return;
+    }
+    setAdding(true);
+    const { error } = await supabase.from("pantry_items").insert({
+      user_id: user.id,
+      name,
+      quantity: newQty.trim() || null,
+      expiry_date: newDate,
+      source: "manual",
+    });
+    setAdding(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Added "${name}" to the pantry`);
+    setNewName("");
+    setNewQty("");
+    setNewDate(addDays(7));
+    setShowAdd(false);
+    load();
+  };
 
   const load = async () => {
     setLoading(true);
