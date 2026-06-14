@@ -175,12 +175,48 @@ const Pantry = () => {
               {items.length} item{items.length === 1 ? "" : "s"} tracked.
             </p>
           </div>
-          <Button asChild variant="hero">
-            <Link to="/scan"><Plus /> Add items</Link>
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setShowAdd((s) => !s)}>
+              <PenLine /> {showAdd ? "Close" : "Add manually"}
+            </Button>
+            <Button asChild variant="hero">
+              <Link to="/scan"><ScanLine /> Scan</Link>
+            </Button>
+          </div>
         </div>
         <hr className="rule-divider" />
       </section>
+
+      {showAdd && (
+        <Card className="paper-card p-4 animate-fade-in relative">
+          <span className="tape" />
+          <p className="font-hand text-xl text-primary mb-3">Add an item by hand</p>
+          <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
+            <Input
+              placeholder="Item name (e.g. Greek yogurt)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+            />
+            <Input
+              placeholder="Quantity (optional)"
+              value={newQty}
+              onChange={(e) => setNewQty(e.target.value)}
+            />
+            <Input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+            <Button variant="accent" onClick={addManual} disabled={adding}>
+              <Check /> Add
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic mt-2">
+            Pick the expiry date printed on the package, or your best guess.
+          </p>
+        </Card>
+      )}
 
       {loading && <p className="text-muted-foreground italic">Opening the larder…</p>}
 
