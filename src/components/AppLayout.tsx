@@ -26,13 +26,13 @@ const AppLayout = () => {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-30">
         <div className="container flex items-center justify-between h-16 gap-3">
-          <Link to="/" className="flex items-center gap-2 group">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-fresh text-primary-foreground shadow-soft group-hover:scale-105 transition-transform">
+          <Link to="/" className="flex items-center gap-2 group min-w-0">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-fresh text-primary-foreground shadow-soft group-hover:scale-105 transition-transform shrink-0">
               <Leaf className="h-4 w-4" />
             </span>
-            <div className="leading-tight">
+            <div className="leading-tight min-w-0">
               <p className="font-display text-xl tracking-tight">FreshTrack</p>
-              <p className="font-hand text-sm text-accent -mt-1">a kitchen journal</p>
+              <p className="font-hand text-sm text-accent -mt-1 hidden sm:block">a kitchen journal</p>
             </div>
           </Link>
           <nav className="hidden sm:flex items-center gap-1">
@@ -53,16 +53,40 @@ const AppLayout = () => {
                   {item.label}
                 </NavLink>
               ))}
+          </nav>
+          <div className="flex items-center gap-2 min-w-0">
             {user ? (
-              <Button variant="ghost" size="sm" onClick={signOut} className="ml-2">
-                <LogOut className="h-4 w-4" /> Sign out
-              </Button>
+              <>
+                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-primary-soft border border-primary/30 max-w-[180px] sm:max-w-[240px]">
+                  {user.user_metadata?.avatar_url ? (
+                    <img
+                      src={user.user_metadata.avatar_url as string}
+                      alt=""
+                      className="h-6 w-6 rounded-full border border-border"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="h-6 w-6 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold flex items-center justify-center">
+                      {String(user.user_metadata?.full_name || user.email || "?")
+                        .slice(0, 1)
+                        .toUpperCase()}
+                    </span>
+                  )}
+                  <span className="font-serif text-xs text-primary truncate hidden sm:block">
+                    {(user.user_metadata?.full_name as string) || user.email}
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={signOut} title="Sign out" aria-label="Sign out">
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Sign out</span>
+                </Button>
+              </>
             ) : (
-              <Button variant="hero" size="sm" asChild className="ml-2">
+              <Button variant="hero" size="sm" asChild>
                 <Link to="/login"><LogIn className="h-4 w-4" /> Sign in</Link>
               </Button>
             )}
-          </nav>
+          </div>
         </div>
       </header>
 

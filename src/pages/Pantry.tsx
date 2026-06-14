@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, Plus, ScanLine, ChefHat, Refrigerator, Pencil, Check, X } from "lucide-react";
+import { Trash2, Plus, ScanLine, ChefHat, Refrigerator, Pencil, Check, X, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { addDays } from "@/lib/expiry";
 import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +26,43 @@ const Pantry = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newQty, setNewQty] = useState("");
+  const [newDate, setNewDate] = useState(addDays(7));
+  const [adding, setAdding] = useState(false);
+
+  const addManual = async () => {
+    if (!user) return;
+    const name = newName.trim();
+    if (!name) {
+      toast.error("Enter an item name");
+      return;
+    }
+    if (!newDate) {
+      toast.error("Pick an expiry date");
+      return;
+    }
+    setAdding(true);
+    const { error } = await supabase.from("pantry_items").insert({
+      user_id: user.id,
+      name,
+      quantity: newQty.trim() || null,
+      expiry_date: newDate,
+      source: "manual",
+    });
+    setAdding(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Added "${name}" to the pantry`);
+    setNewName("");
+    setNewQty("");
+    setNewDate(addDays(7));
+    setShowAdd(false);
+    load();
+  };
 
   const load = async () => {
     setLoading(true);
@@ -137,12 +175,48 @@ const Pantry = () => {
               {items.length} item{items.length === 1 ? "" : "s"} tracked.
             </p>
           </div>
-          <Button asChild variant="hero">
-            <Link to="/scan"><Plus /> Add items</Link>
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setShowAdd((s) => !s)}>
+              <PenLine /> {showAdd ? "Close" : "Add manually"}
+            </Button>
+            <Button asChild variant="hero">
+              <Link to="/scan"><ScanLine /> Scan</Link>
+            </Button>
+          </div>
         </div>
         <hr className="rule-divider" />
       </section>
+
+      {showAdd && (
+        <Card className="paper-card p-4 animate-fade-in relative">
+          <span className="tape" />
+          <p className="font-hand text-xl text-primary mb-3">Add an item by hand</p>
+          <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
+            <Input
+              placeholder="Item name (e.g. Greek yogurt)"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+            />
+            <Input
+              placeholder="Quantity (optional)"
+              value={newQty}
+              onChange={(e) => setNewQty(e.target.value)}
+            />
+            <Input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+            <Button variant="accent" onClick={addManual} disabled={adding}>
+              <Check /> Add
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground italic mt-2">
+            Pick the expiry date printed on the package, or your best guess.
+          </p>
+        </Card>
+      )}
 
       {loading && <p className="text-muted-foreground italic">Opening the larder…</p>}
 

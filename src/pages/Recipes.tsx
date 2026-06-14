@@ -245,8 +245,21 @@ const Recipes = () => {
                 className="paper-card overflow-hidden flex flex-col cursor-pointer hover:-translate-y-0.5 transition-transform"
                 onClick={() => setViewing(r)}
               >
-                <div className="aspect-[4/3] overflow-hidden relative">
-                  <RecipeImage src={r.image_url ?? null} alt={r.title} rounded="" />
+                <div className="aspect-[4/3] overflow-hidden relative bg-secondary">
+                  <RecipeImage
+                    src={
+                      r.image_url ??
+                      `https://image.pollinations.ai/prompt/${encodeURIComponent(
+                        `${r.title}, rustic home-cooked dish, overhead food photography, natural light, cookbook style`,
+                      )}?width=600&height=450&nologo=true&seed=${
+                        Math.abs(
+                          r.title.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
+                        )
+                      }`
+                    }
+                    alt={r.title}
+                    rounded=""
+                  />
                   {fromCookbook ? (
                     <span className="absolute top-2 left-2 flex items-center gap-1 font-hand text-base px-2 py-0.5 bg-card/95 border border-border rounded-sm rotate-[-3deg]">
                       <BookOpen className="h-3.5 w-3.5 text-primary" /> from cookbook
