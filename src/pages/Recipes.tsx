@@ -177,6 +177,38 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
+  // Generate Gemini images for AI recipes that don't already have one
+  useEffect(() => {
+    aiRecipes.forEach((r) => {
+      const key = r.title.toLowerCase();
+      if (r.image_url || generatedImages[key] || imageLoading.has(key)) return;
+      setImageLoading((prev) => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
+      supabase.functions
+        .invoke("generate-recipe-image", {
+          body: { title: r.title, description: r.description },
+        })
+        .then(({ data, error }) => {
+          if (error || !data?.image) {
+            console.error("image gen failed", error);
+            return;
+          }
+          setGeneratedImages((prev) => ({ ...prev, [key]: data.image as string }));
+        })
+        .finally(() => {
+          setImageLoading((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        });
+    });
+  }, [aiRecipes, generatedImages, imageLoading]);
+
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
