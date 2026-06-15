@@ -281,19 +281,17 @@ const Recipes = () => {
               >
                 <div className="aspect-[4/3] overflow-hidden relative bg-secondary">
                   <RecipeImage
-                    src={
-                      r.image_url ??
-                      `https://image.pollinations.ai/prompt/${encodeURIComponent(
-                        `${r.title}, rustic home-cooked dish, overhead food photography, natural light, cookbook style`,
-                      )}?width=600&height=450&nologo=true&seed=${
-                        Math.abs(
-                          r.title.split("").reduce((a, c) => a + c.charCodeAt(0), 0),
-                        )
-                      }`
-                    }
+                    src={r.image_url ?? generatedImages[r.title.toLowerCase()] ?? null}
                     alt={r.title}
                     rounded=""
                   />
+                  {!r.image_url && !generatedImages[r.title.toLowerCase()] && imageLoading.has(r.title.toLowerCase()) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-secondary/70 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs text-primary font-hand text-base">
+                        <Loader2 className="h-4 w-4 animate-spin" /> painting your dish…
+                      </div>
+                    </div>
+                  )}
                   {fromCookbook ? (
                     <span className="absolute top-2 left-2 flex items-center gap-1 font-hand text-base px-2 py-0.5 bg-card/95 border border-border rounded-sm rotate-[-3deg]">
                       <BookOpen className="h-3.5 w-3.5 text-primary" /> from cookbook
