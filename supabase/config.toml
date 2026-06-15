@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.suggest-recipes]
 verify_jwt = false
+
+[functions.recipe-chat]
+verify_jwt = false
+
+[functions.generate-recipe-image]
+verify_jwt = false
