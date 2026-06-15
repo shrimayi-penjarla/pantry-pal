@@ -51,6 +51,8 @@ const Recipes = () => {
   const [aiRecipes, setAiRecipes] = useState<Recipe[]>([]);
   const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<Recipe | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [imageLoading, setImageLoading] = useState<Set<string>>(new Set());
 
   const refreshCookbook = async () => {
     const { data } = await supabase
