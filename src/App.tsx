@@ -12,6 +12,7 @@ import Scan from "./pages/Scan.tsx";
 import Recipes from "./pages/Recipes.tsx";
 import Cookbook from "./pages/Cookbook.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
+import Chat from "./pages/Chat.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
