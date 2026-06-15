@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ScanLine, Refrigerator, ChefHat, BookOpen, Leaf, ListChecks, LogIn, LogOut } from "lucide-react";
+import { ScanLine, Refrigerator, ChefHat, BookOpen, Leaf, ListChecks, LogIn, LogOut, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ExpiryBanner from "@/components/ExpiryBanner";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ const navItems = [
   { to: "/pantry", label: "Pantry", icon: Refrigerator },
   { to: "/shopping", label: "Shopping", icon: ListChecks },
   { to: "/recipes", label: "Recipes", icon: ChefHat },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/cookbook", label: "Cookbook", icon: BookOpen },
 ];
 
