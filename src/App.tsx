@@ -12,6 +12,7 @@ import Scan from "./pages/Scan.tsx";
 import Recipes from "./pages/Recipes.tsx";
 import Cookbook from "./pages/Cookbook.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
+import Chat from "./pages/Chat.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/recipes" element={guard(<Recipes />)} />
             <Route path="/cookbook" element={guard(<Cookbook />)} />
             <Route path="/shopping" element={guard(<ShoppingList />)} />
+            <Route path="/chat" element={guard(<Chat />)} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
