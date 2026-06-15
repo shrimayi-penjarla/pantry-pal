@@ -99,7 +99,7 @@ const AppLayout = () => {
 
       {user && (
         <nav className="sm:hidden fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur">
-          <div className="grid grid-cols-5">
+          <div className="grid grid-cols-6">
             <NavLink
               to="/scan"
               className={({ isActive }) =>
