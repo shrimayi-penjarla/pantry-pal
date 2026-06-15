@@ -34,6 +34,7 @@ const App = () => (
             <Route path="/recipes" element={guard(<Recipes />)} />
             <Route path="/cookbook" element={guard(<Cookbook />)} />
             <Route path="/shopping" element={guard(<ShoppingList />)} />
+            <Route path="/chat" element={guard(<Chat />)} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
