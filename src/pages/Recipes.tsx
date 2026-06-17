@@ -310,6 +310,72 @@ const Recipes = () => {
         </Card>
       )}
 
+      {/* Recipe chatbot — design-a-card */}
+      <Card className="paper-card p-5 relative">
+        <span className="tape" />
+        <div className="flex items-start gap-3 mb-3">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent border border-border/60">
+            <MessageCircle className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-display text-xl leading-tight">Design a recipe card</p>
+            <p className="text-sm text-muted-foreground italic">
+              Tell me what you're craving — diet, cuisine, meal type — and I'll draft a card you can save to your cookbook.
+            </p>
+          </div>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            askChat();
+          }}
+          className="flex gap-2 items-end"
+        >
+          <Textarea
+            value={chatPrompt}
+            onChange={(e) => setChatPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                askChat();
+              }
+            }}
+            rows={1}
+            placeholder="e.g. gluten-free Thai lunch in 25 min"
+            className="resize-none min-h-[44px] max-h-32"
+            disabled={chatBusy}
+          />
+          <Button type="submit" size="icon" disabled={chatBusy || !chatPrompt.trim()}>
+            {chatBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </form>
+
+        {chatRecipe && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr] items-start animate-fade-in">
+            <div className="aspect-[4/3] sm:aspect-square overflow-hidden rounded-md border border-border bg-secondary">
+              <RecipeImage src={chatImage} alt={chatRecipe.title} rounded="" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-display text-xl leading-tight">{chatRecipe.title}</h3>
+                {chatRecipe.prep_minutes > 0 && (
+                  <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />{chatRecipe.prep_minutes}m</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground italic">{chatRecipe.description}</p>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="hero" onClick={saveChatRecipe}>
+                  <Save className="h-4 w-4" /> Save to cookbook
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setViewing({ ...chatRecipe, image_url: chatImage })}>
+                  View full recipe
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {loading && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
