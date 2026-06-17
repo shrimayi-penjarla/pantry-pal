@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star, BookOpen } from "lucide-react";
+import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star, BookOpen, MessageCircle, Send, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchPixabayImage } from "@/lib/pixabay";
 
 interface Recipe {
   title: string;
@@ -177,7 +179,7 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
-  // Generate Gemini images for AI recipes that don't already have one
+  // Fetch Pixabay images for AI recipes that don't already have one
   useEffect(() => {
     aiRecipes.forEach((r) => {
       const key = r.title.toLowerCase();
@@ -187,16 +189,9 @@ const Recipes = () => {
         next.add(key);
         return next;
       });
-      supabase.functions
-        .invoke("generate-recipe-image", {
-          body: { title: r.title, description: r.description },
-        })
-        .then(({ data, error }) => {
-          if (error || !data?.image) {
-            console.error("image gen failed", error);
-            return;
-          }
-          setGeneratedImages((prev) => ({ ...prev, [key]: data.image as string }));
+      fetchPixabayImage(r.title)
+        .then((img) => {
+          if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
         })
         .finally(() => {
           setImageLoading((prev) => {
@@ -207,6 +202,61 @@ const Recipes = () => {
         });
     });
   }, [aiRecipes, generatedImages, imageLoading]);
+
+  // --- Chatbot recipe-card builder ---
+  const [chatPrompt, setChatPrompt] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatRecipe, setChatRecipe] = useState<Recipe | null>(null);
+  const [chatImage, setChatImage] = useState<string | null>(null);
+
+  const askChat = async () => {
+    const p = chatPrompt.trim();
+    if (!p || chatBusy) return;
+    setChatBusy(true);
+    setChatRecipe(null);
+    setChatImage(null);
+    try {
+      const items = pantry
+        .map((x) => ({ name: x.name, daysUntilExpiry: daysUntil(x.expiry_date) }))
+        .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry)
+        .slice(0, 20);
+      const { data, error } = await supabase.functions.invoke("recipe-from-prompt", {
+        body: { prompt: p, pantry: items },
+      });
+      if (error) throw error;
+      const rec = (data as { recipe?: Recipe })?.recipe;
+      if (!rec) throw new Error("No recipe returned");
+      setChatRecipe({ ...rec, source: "ai" });
+      fetchPixabayImage(rec.title).then((img) => img && setChatImage(img));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not build a recipe");
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const saveChatRecipe = async () => {
+    if (!chatRecipe || !user) return;
+    const { error } = await supabase.from("cookbook_recipes").insert({
+      user_id: user.id,
+      title: chatRecipe.title,
+      description: chatRecipe.description,
+      ingredients: chatRecipe.ingredients,
+      steps: chatRecipe.steps,
+      uses_items: chatRecipe.uses_items,
+      prep_minutes: chatRecipe.prep_minutes,
+      image_url: chatImage,
+      source: "ai",
+      is_favorite: true,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`"${chatRecipe.title}" saved to your cookbook`);
+    refreshCookbook();
+  };
+
 
 
   return (
