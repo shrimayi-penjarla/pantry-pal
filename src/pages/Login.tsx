@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Leaf, BookOpen, Mail, Lock, Loader2 } from "lucide-react";
+import { Leaf, BookOpen, User, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+// Usernames are stored as synthetic emails against the auth provider so families
+// can share one short login without needing a real inbox.
+const USERNAME_DOMAIN = "users.freshtrack.app";
+const usernameToEmail = (u: string) =>
+  `${u.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "")}@${USERNAME_DOMAIN}`;
+const isValidUsername = (u: string) => /^[a-zA-Z0-9._-]{3,30}$/.test(u.trim());
+
 const Login = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -36,12 +43,22 @@ const Login = () => {
 
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!isValidUsername(username) || !password) {
+      toast.error("Enter your username and password");
+      return;
+    }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password,
+    });
     setBusy(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(
+        error.message.toLowerCase().includes("invalid")
+          ? "Username or password is incorrect"
+          : error.message,
+      );
       return;
     }
     toast.success("Welcome back!");
@@ -50,20 +67,29 @@ const Login = () => {
 
   const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!isValidUsername(username)) {
+      toast.error("Username must be 3–30 letters, numbers, dot, dash or underscore");
+      return;
+    }
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
     }
     setBusy(true);
     const { error } = await supabase.auth.signUp({
-      email,
+      email: usernameToEmail(username),
       password,
-      options: { emailRedirectTo: window.location.origin + "/pantry" },
+      options: {
+        emailRedirectTo: window.location.origin + "/pantry",
+        data: { username: username.trim() },
+      },
     });
     setBusy(false);
     if (error) {
-      toast.error(error.message);
+      const msg = error.message.toLowerCase().includes("registered")
+        ? "That username is already taken — try another."
+        : error.message;
+      toast.error(msg);
       return;
     }
     toast.success("Account created — you're in!");
@@ -80,7 +106,7 @@ const Login = () => {
         <p className="font-hand text-2xl text-accent mt-3">welcome, friend</p>
         <h1 className="font-display text-3xl tracking-tight mt-1">Sign in to your kitchen</h1>
         <p className="text-sm text-muted-foreground italic mt-2 mb-5">
-          Your pantry, cookbook, and shopping list — kept just for you and your household.
+          Pick a username and password — share them with your family so everyone uses the same pantry.
         </p>
 
         <Tabs defaultValue="signin" className="text-left">
@@ -92,18 +118,18 @@ const Login = () => {
           <TabsContent value="signin" className="mt-4 space-y-3">
             <form onSubmit={signIn} className="space-y-3">
               <div className="space-y-1">
-                <Label htmlFor="email-in" className="font-serif">Email</Label>
+                <Label htmlFor="user-in" className="font-serif">Username</Label>
                 <div className="relative">
-                  <Mail className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="email-in"
-                    type="email"
-                    autoComplete="email"
+                    id="user-in"
+                    type="text"
+                    autoComplete="username"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-9"
-                    placeholder="you@home.com"
+                    placeholder="smith_family"
                   />
                 </div>
               </div>
@@ -132,20 +158,25 @@ const Login = () => {
           <TabsContent value="signup" className="mt-4 space-y-3">
             <form onSubmit={signUp} className="space-y-3">
               <div className="space-y-1">
-                <Label htmlFor="email-up" className="font-serif">Email (your household login)</Label>
+                <Label htmlFor="user-up" className="font-serif">Pick a username</Label>
                 <div className="relative">
-                  <Mail className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <User className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="email-up"
-                    type="email"
-                    autoComplete="email"
+                    id="user-up"
+                    type="text"
+                    autoComplete="username"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    minLength={3}
+                    maxLength={30}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-9"
-                    placeholder="kitchen@smith.family"
+                    placeholder="smith_family"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground italic">
+                  3–30 characters: letters, numbers, dot, dash or underscore.
+                </p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="pw-up" className="font-serif">Password</Label>
@@ -164,7 +195,7 @@ const Login = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground italic">
-                  Share this email + password with your family so everyone shares the same pantry.
+                  Share these with your family so everyone shares the same pantry.
                 </p>
               </div>
               <Button type="submit" variant="hero" size="lg" className="w-full" disabled={busy}>

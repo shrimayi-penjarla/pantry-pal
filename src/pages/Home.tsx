@@ -69,12 +69,12 @@ const Home = () => {
             <img
               src={cozyKitchen}
               alt="A cozy illustrated country kitchen with a stocked fridge, fresh vegetables, and an open cookbook"
-              className="rounded-md shadow-soft border border-border w-full h-56 sm:h-80 object-cover rotate-[-1.5deg]"
+              className="rounded-md shadow-soft border border-border w-full h-56 sm:h-80 object-cover"
             />
-            <span className="absolute -bottom-2 left-6 font-hand text-2xl text-primary bg-card px-3 py-0.5 rounded-sm border border-border rotate-[-2deg] shadow-soft">
+            <span className="absolute -bottom-2 left-6 font-hand text-2xl text-primary bg-card px-3 py-0.5 rounded-sm border border-border shadow-soft">
               fresh today
             </span>
-            <span className="absolute -top-3 -right-2 font-hand text-xl text-accent bg-card px-3 py-0.5 rounded-sm border border-border rotate-[5deg] shadow-soft hidden sm:block">
+            <span className="absolute -top-3 -right-2 font-hand text-xl text-accent bg-card px-3 py-0.5 rounded-sm border border-border shadow-soft hidden sm:block">
               with love ♡
             </span>
           </div>

@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star, BookOpen } from "lucide-react";
+import { ChefHat, Loader2, Sparkles, Clock, Refrigerator, Star, BookOpen, MessageCircle, Send, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expiry";
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchPixabayImage } from "@/lib/pixabay";
 
 interface Recipe {
   title: string;
@@ -177,7 +179,7 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
-  // Generate Gemini images for AI recipes that don't already have one
+  // Fetch Pixabay images for AI recipes that don't already have one
   useEffect(() => {
     aiRecipes.forEach((r) => {
       const key = r.title.toLowerCase();
@@ -187,16 +189,9 @@ const Recipes = () => {
         next.add(key);
         return next;
       });
-      supabase.functions
-        .invoke("generate-recipe-image", {
-          body: { title: r.title, description: r.description },
-        })
-        .then(({ data, error }) => {
-          if (error || !data?.image) {
-            console.error("image gen failed", error);
-            return;
-          }
-          setGeneratedImages((prev) => ({ ...prev, [key]: data.image as string }));
+      fetchPixabayImage(r.title)
+        .then((img) => {
+          if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
         })
         .finally(() => {
           setImageLoading((prev) => {
@@ -207,6 +202,61 @@ const Recipes = () => {
         });
     });
   }, [aiRecipes, generatedImages, imageLoading]);
+
+  // --- Chatbot recipe-card builder ---
+  const [chatPrompt, setChatPrompt] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatRecipe, setChatRecipe] = useState<Recipe | null>(null);
+  const [chatImage, setChatImage] = useState<string | null>(null);
+
+  const askChat = async () => {
+    const p = chatPrompt.trim();
+    if (!p || chatBusy) return;
+    setChatBusy(true);
+    setChatRecipe(null);
+    setChatImage(null);
+    try {
+      const items = pantry
+        .map((x) => ({ name: x.name, daysUntilExpiry: daysUntil(x.expiry_date) }))
+        .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry)
+        .slice(0, 20);
+      const { data, error } = await supabase.functions.invoke("recipe-from-prompt", {
+        body: { prompt: p, pantry: items },
+      });
+      if (error) throw error;
+      const rec = (data as { recipe?: Recipe })?.recipe;
+      if (!rec) throw new Error("No recipe returned");
+      setChatRecipe({ ...rec, source: "ai" });
+      fetchPixabayImage(rec.title).then((img) => img && setChatImage(img));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not build a recipe");
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const saveChatRecipe = async () => {
+    if (!chatRecipe || !user) return;
+    const { error } = await supabase.from("cookbook_recipes").insert({
+      user_id: user.id,
+      title: chatRecipe.title,
+      description: chatRecipe.description,
+      ingredients: chatRecipe.ingredients,
+      steps: chatRecipe.steps,
+      uses_items: chatRecipe.uses_items,
+      prep_minutes: chatRecipe.prep_minutes,
+      image_url: chatImage,
+      source: "ai",
+      is_favorite: true,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`"${chatRecipe.title}" saved to your cookbook`);
+    refreshCookbook();
+  };
+
 
 
   return (
@@ -259,6 +309,72 @@ const Recipes = () => {
           </div>
         </Card>
       )}
+
+      {/* Recipe chatbot — design-a-card */}
+      <Card className="paper-card p-5 relative">
+        <span className="tape" />
+        <div className="flex items-start gap-3 mb-3">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent border border-border/60">
+            <MessageCircle className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-display text-xl leading-tight">Design a recipe card</p>
+            <p className="text-sm text-muted-foreground italic">
+              Tell me what you're craving — diet, cuisine, meal type — and I'll draft a card you can save to your cookbook.
+            </p>
+          </div>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            askChat();
+          }}
+          className="flex gap-2 items-end"
+        >
+          <Textarea
+            value={chatPrompt}
+            onChange={(e) => setChatPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                askChat();
+              }
+            }}
+            rows={1}
+            placeholder="e.g. gluten-free Thai lunch in 25 min"
+            className="resize-none min-h-[44px] max-h-32"
+            disabled={chatBusy}
+          />
+          <Button type="submit" size="icon" disabled={chatBusy || !chatPrompt.trim()}>
+            {chatBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </form>
+
+        {chatRecipe && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-[180px_1fr] items-start animate-fade-in">
+            <div className="aspect-[4/3] sm:aspect-square overflow-hidden rounded-md border border-border bg-secondary">
+              <RecipeImage src={chatImage} alt={chatRecipe.title} rounded="" />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-display text-xl leading-tight">{chatRecipe.title}</h3>
+                {chatRecipe.prep_minutes > 0 && (
+                  <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />{chatRecipe.prep_minutes}m</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground italic">{chatRecipe.description}</p>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="hero" onClick={saveChatRecipe}>
+                  <Save className="h-4 w-4" /> Save to cookbook
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setViewing({ ...chatRecipe, image_url: chatImage })}>
+                  View full recipe
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {loading && (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.generate-recipe-image]
 verify_jwt = false
+
+[functions.recipe-from-prompt]
+verify_jwt = false
