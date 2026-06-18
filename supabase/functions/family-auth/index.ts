@@ -7,7 +7,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
-import bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,17 +56,12 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: "auth" as never },
-    });
-    // Separate client pinned to the public schema for admin.* APIs.
-    const adminPublic = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
     });
 
     const email = usernameToEmail(cleanUsername);
 
     if (action === "signup") {
-      const { error } = await adminPublic.auth.admin.createUser({
+      const { error } = await admin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
@@ -82,28 +76,22 @@ serve(async (req) => {
         return json({ error: error.message }, 400);
       }
     } else {
-      // signin → verify password against bcrypt hash in auth.users
-      const { data: row, error: qErr } = await admin
-        .from("users")
-        .select("encrypted_password")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (qErr) {
-        console.error("auth.users query error:", qErr);
-        return json({ error: "Could not look up account" }, 500);
+      // signin → verify password via SECURITY DEFINER RPC (uses pgcrypto.crypt)
+      const { data: ok, error: rpcErr } = await admin.rpc("verify_family_password", {
+        p_email: email,
+        p_password: password,
+      });
+      if (rpcErr) {
+        console.error("verify_family_password error:", rpcErr);
+        return json({ error: "Could not verify credentials" }, 500);
       }
-      if (!row?.encrypted_password) {
-        return json({ error: "Username or password is incorrect" }, 401);
-      }
-      const ok = await bcrypt.compare(password, row.encrypted_password);
       if (!ok) {
         return json({ error: "Username or password is incorrect" }, 401);
       }
     }
 
     // Mint a magiclink → extract token_hash for client-side verifyOtp.
-    const { data: linkData, error: linkErr } = await adminPublic.auth.admin.generateLink({
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
     });
