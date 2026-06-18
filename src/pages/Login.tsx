@@ -41,6 +41,39 @@ const Login = () => {
     navigate("/pantry");
   };
 
+  // Email provider is disabled on the managed instance, so signInWithPassword /
+  // signUp both 422. We call our family-auth edge function, which validates the
+  // credentials with the service role and returns a magic-link token_hash;
+  // verifyOtp redeems it into a real session without hitting the provider gate.
+  const redeemToken = async (tokenHash: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "magiclink",
+    });
+    if (error) throw new Error(error.message);
+    if (!data.session) throw new Error("No session returned");
+  };
+
+  const familyAuth = async (action: "signup" | "signin") => {
+    const { data, error } = await supabase.functions.invoke("family-auth", {
+      body: { action, username: username.trim(), password },
+    });
+    if (error) {
+      // Surface the raw edge-function error body when available.
+      const ctx = (error as { context?: Response }).context;
+      let raw = error.message;
+      if (ctx && typeof ctx.json === "function") {
+        try {
+          const body = await ctx.json();
+          if (body?.error) raw = body.error;
+        } catch { /* ignore */ }
+      }
+      throw new Error(raw);
+    }
+    if (!data?.token_hash) throw new Error(data?.error || "No session token returned");
+    await redeemToken(data.token_hash);
+  };
+
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidUsername(username) || !password) {
@@ -48,21 +81,15 @@ const Login = () => {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(username),
-      password,
-    });
-    setBusy(false);
-    if (error) {
-      toast.error(
-        error.message.toLowerCase().includes("invalid")
-          ? "Username or password is incorrect"
-          : error.message,
-      );
-      return;
+    try {
+      await familyAuth("signin");
+      toast.success("Welcome back!");
+      navigate("/pantry", { replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sign-in failed");
+    } finally {
+      setBusy(false);
     }
-    toast.success("Welcome back!");
-    navigate("/pantry");
   };
 
   const signUp = async (e: React.FormEvent) => {
@@ -76,50 +103,12 @@ const Login = () => {
       return;
     }
     setBusy(true);
-    const email = usernameToEmail(username);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin + "/pantry",
-          data: { username: username.trim() },
-        },
-      });
-
-      if (error) {
-        const lower = error.message.toLowerCase();
-        const emailSignupDisabled =
-          lower.includes("email signups are disabled") ||
-          lower.includes("email provider") ||
-          lower.includes("signup") && lower.includes("disabled");
-
-        if (!emailSignupDisabled) {
-          const msg = lower.includes("registered")
-            ? "That username is already taken — try another."
-            : error.message;
-          toast.error(msg);
-          return;
-        }
-
-        const { data, error: fallbackError } = await supabase.functions.invoke("create-family-account", {
-          body: { username: username.trim(), password },
-        });
-
-        if (fallbackError || data?.error) {
-          toast.error(data?.error || fallbackError?.message || "Could not create account");
-          return;
-        }
-      }
-
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) {
-        toast.success("Account created — sign in with your new username and password.");
-        return;
-      }
-
+      await familyAuth("signup");
       toast.success("Account created — you're in!");
-      navigate("/pantry");
+      navigate("/pantry", { replace: true });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not create account");
     } finally {
       setBusy(false);
     }
