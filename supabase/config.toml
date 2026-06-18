@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.create-family-account]
 verify_jwt = false
+
+[functions.family-auth]
+verify_jwt = false
