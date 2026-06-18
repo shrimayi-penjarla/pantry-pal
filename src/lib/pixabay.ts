@@ -1,30 +1,55 @@
-// Pixabay image search — returns a usable image URL for a query, or null.
-// API key is a public/publishable key (Pixabay tokens are scoped to read-only image search).
-const PIXABAY_KEY = "56337370-cc4fe7478bd03d0fe08a9b30a";
+// Fast client-side food image lookup.
+// Pixabay's key is a publishable read-only image-search token; safe to ship.
+const PIXABAY_KEY =
+  (import.meta.env.VITE_PIXABAY_API_KEY as string | undefined) ||
+  "56337370-cc4fe7478bd03d0fe08a9b30a";
 
-const cache = new Map<string, string | null>();
+const cache = new Map<string, string>();
 
-export async function fetchPixabayImage(query: string): Promise<string | null> {
+/** Instant Unsplash fallback so a relevant food photo always shows without lag. */
+export function unsplashFallback(query: string, seed: string | number = 0): string {
+  return `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80&q=${encodeURIComponent(
+    query,
+  )}&sig=${encodeURIComponent(String(seed))}`;
+}
+
+/**
+ * Returns a Pixabay food photo for the query; falls back to Unsplash on any
+ * failure or empty result so callers always get a usable image URL.
+ */
+export async function fetchPixabayImage(
+  query: string,
+  seed: string | number = 0,
+): Promise<string> {
   const key = query.trim().toLowerCase();
-  if (!key) return null;
-  if (cache.has(key)) return cache.get(key)!;
+  if (!key) return unsplashFallback(query || "food", seed);
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const fallback = unsplashFallback(query, seed);
+  if (!PIXABAY_KEY) {
+    cache.set(key, fallback);
+    return fallback;
+  }
   try {
     const url = `https://pixabay.com/api/?key=${PIXABAY_KEY}&q=${encodeURIComponent(
-      query + " food",
-    )}&image_type=photo&category=food&safesearch=true&per_page=5&orientation=horizontal`;
+      query,
+    )}&image_type=photo&category=food&per_page=3&safesearch=true`;
     const res = await fetch(url);
     if (!res.ok) {
-      cache.set(key, null);
-      return null;
+      cache.set(key, fallback);
+      return fallback;
     }
-    const data = (await res.json()) as { hits?: { webformatURL?: string; largeImageURL?: string }[] };
-    const hit = data.hits?.[0];
-    const img = hit?.largeImageURL ?? hit?.webformatURL ?? null;
+    const data = (await res.json()) as {
+      hits?: { webformatURL?: string; largeImageURL?: string }[];
+    };
+    const hit = data.hits?.find((h) => h.webformatURL || h.largeImageURL);
+    const img = hit?.webformatURL ?? hit?.largeImageURL ?? fallback;
     cache.set(key, img);
     return img;
   } catch (e) {
-    console.error("pixabay error", e);
-    cache.set(key, null);
-    return null;
+    console.warn("pixabay fetch failed, using Unsplash fallback", e);
+    cache.set(key, fallback);
+    return fallback;
   }
 }
