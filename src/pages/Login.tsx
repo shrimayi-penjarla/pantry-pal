@@ -76,24 +76,53 @@ const Login = () => {
       return;
     }
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email: usernameToEmail(username),
-      password,
-      options: {
-        emailRedirectTo: window.location.origin + "/pantry",
-        data: { username: username.trim() },
-      },
-    });
-    setBusy(false);
-    if (error) {
-      const msg = error.message.toLowerCase().includes("registered")
-        ? "That username is already taken — try another."
-        : error.message;
-      toast.error(msg);
-      return;
+    const email = usernameToEmail(username);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + "/pantry",
+          data: { username: username.trim() },
+        },
+      });
+
+      if (error) {
+        const lower = error.message.toLowerCase();
+        const emailSignupDisabled =
+          lower.includes("email signups are disabled") ||
+          lower.includes("email provider") ||
+          lower.includes("signup") && lower.includes("disabled");
+
+        if (!emailSignupDisabled) {
+          const msg = lower.includes("registered")
+            ? "That username is already taken — try another."
+            : error.message;
+          toast.error(msg);
+          return;
+        }
+
+        const { data, error: fallbackError } = await supabase.functions.invoke("create-family-account", {
+          body: { username: username.trim(), password },
+        });
+
+        if (fallbackError || data?.error) {
+          toast.error(data?.error || fallbackError?.message || "Could not create account");
+          return;
+        }
+      }
+
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) {
+        toast.success("Account created — sign in with your new username and password.");
+        return;
+      }
+
+      toast.success("Account created — you're in!");
+      navigate("/pantry");
+    } finally {
+      setBusy(false);
     }
-    toast.success("Account created — you're in!");
-    navigate("/pantry");
   };
 
   return (
