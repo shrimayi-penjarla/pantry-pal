@@ -11,7 +11,7 @@ import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expir
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchPixabayImage } from "@/lib/pixabay";
+import { fetchPixabayImage, unsplashFallback } from "@/lib/pixabay";
 
 interface Recipe {
   title: string;
@@ -54,7 +54,6 @@ const Recipes = () => {
   const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
   const [viewing, setViewing] = useState<Recipe | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
-  const [imageLoading, setImageLoading] = useState<Set<string>>(new Set());
 
   const refreshCookbook = async () => {
     const { data } = await supabase
@@ -179,29 +178,22 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
-  // Fetch Pixabay images for AI recipes that don't already have one
+  // Show an instant Unsplash fallback for every AI recipe, then upgrade to
+  // a Pixabay food photo in the background — never block the UI on the network.
   useEffect(() => {
-    aiRecipes.forEach((r) => {
+    aiRecipes.forEach((r, idx) => {
       const key = r.title.toLowerCase();
-      if (r.image_url || generatedImages[key] || imageLoading.has(key)) return;
-      setImageLoading((prev) => {
-        const next = new Set(prev);
-        next.add(key);
-        return next;
+      if (r.image_url || generatedImages[key]) return;
+      // Instant fallback so the card never shows a loading state.
+      setGeneratedImages((prev) =>
+        prev[key] ? prev : { ...prev, [key]: unsplashFallback(r.title, idx) },
+      );
+      // Async upgrade — replaces with a real food photo if Pixabay returns one.
+      fetchPixabayImage(r.title, idx).then((img) => {
+        if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
       });
-      fetchPixabayImage(r.title)
-        .then((img) => {
-          if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
-        })
-        .finally(() => {
-          setImageLoading((prev) => {
-            const next = new Set(prev);
-            next.delete(key);
-            return next;
-          });
-        });
     });
-  }, [aiRecipes, generatedImages, imageLoading]);
+  }, [aiRecipes, generatedImages]);
 
   // --- Chatbot recipe-card builder ---
   const [chatPrompt, setChatPrompt] = useState("");
@@ -401,13 +393,6 @@ const Recipes = () => {
                     alt={r.title}
                     rounded=""
                   />
-                  {!r.image_url && !generatedImages[r.title.toLowerCase()] && imageLoading.has(r.title.toLowerCase()) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-secondary/70 backdrop-blur-sm">
-                      <div className="flex items-center gap-2 text-xs text-primary font-hand text-base">
-                        <Loader2 className="h-4 w-4 animate-spin" /> painting your dish…
-                      </div>
-                    </div>
-                  )}
                   {fromCookbook ? (
                     <span className="absolute top-2 left-2 flex items-center gap-1 font-hand text-base px-2 py-0.5 bg-card/95 border border-border rounded-sm rotate-[-3deg]">
                       <BookOpen className="h-3.5 w-3.5 text-primary" /> from cookbook
