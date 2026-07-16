@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.2",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://pzoqlzigqbsrlkewhbod.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "freshtrack-mcp",
+      "version": "0.1.0",
+      "title": "FreshTrack"
+    },
+    "tools": [
+      {
+        "name": "list_pantry_items",
+        "title": "List pantry items",
+        "description": "List the signed-in family's pantry items, sorted by soonest expiry. Optionally limit results.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Max rows to return (default 50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_pantry_item",
+        "title": "Add pantry item",
+        "description": "Add an item to the signed-in family's pantry with a name, expiry date, and optional quantity.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Item name, e.g. 'Milk'."
+            },
+            "expiry_date": {
+              "type": "string",
+              "description": "ISO date the item expires (YYYY-MM-DD)."
+            },
+            "quantity": {
+              "type": "string",
+              "description": "Optional quantity, e.g. '1 gallon'."
+            }
+          },
+          "required": [
+            "name",
+            "expiry_date"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_cookbook_recipes",
+        "title": "List saved recipes",
+        "description": "List the family's saved cookbook recipes (title, description, prep time, ingredients, steps).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max recipes to return (default 25)."
+            },
+            "favorites_only": {
+              "type": "boolean",
+              "description": "If true, return only favorited recipes."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "save_recipe_to_cookbook",
+        "title": "Save recipe to cookbook",
+        "description": "Save a recipe to the family's cookbook for later.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string"
+            },
+            "prep_minutes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ingredients": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ingredient lines."
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ordered preparation steps."
+            }
+          },
+          "required": [
+            "title",
+            "ingredients",
+            "steps"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_shopping_list",
+        "title": "List shopping list",
+        "description": "List items on the family's shopping list.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "include_done": {
+              "type": "boolean",
+              "description": "Include items already marked done."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_shopping_list_item",
+        "title": "Add shopping list item",
+        "description": "Add an item to the family's shopping list.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "quantity": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Optional note, e.g. 'for tonight's dinner'."
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

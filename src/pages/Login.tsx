@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Leaf, BookOpen, User, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,25 +20,32 @@ const isValidUsername = (u: string) => /^[a-zA-Z0-9._-]{3,30}$/.test(u.trim());
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Preserve `?next=` through every auth path so an OAuth consent visitor
+  // returns to the consent URL instead of the app home.
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
+  const postAuthPath = nextPath ?? "/pantry";
+
   useEffect(() => {
-    if (!loading && user) navigate("/pantry", { replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && user) navigate(postAuthPath, { replace: true });
+  }, [loading, user, navigate, postAuthPath]);
 
   const signInGoogle = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/pantry",
+      redirect_uri: window.location.origin + postAuthPath,
     });
     if (result.error) {
       toast.error(result.error.message || "Sign-in failed");
       return;
     }
     if (result.redirected) return;
-    navigate("/pantry");
+    navigate(postAuthPath);
   };
 
   // Email provider is disabled on the managed instance, so signInWithPassword /
@@ -84,7 +91,7 @@ const Login = () => {
     try {
       await familyAuth("signin");
       toast.success("Welcome back!");
-      navigate("/pantry", { replace: true });
+      navigate(postAuthPath, { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign-in failed");
     } finally {
@@ -106,7 +113,7 @@ const Login = () => {
     try {
       await familyAuth("signup");
       toast.success("Account created — you're in!");
-      navigate("/pantry", { replace: true });
+      navigate(postAuthPath, { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create account");
     } finally {
