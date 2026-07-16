@@ -13,6 +13,7 @@ import Recipes from "./pages/Recipes.tsx";
 import Cookbook from "./pages/Cookbook.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
 import Chat from "./pages/Chat.tsx";
+import OAuthConsent from "./pages/OAuthConsent.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/shopping" element={guard(<ShoppingList />)} />
             <Route path="/chat" element={guard(<Chat />)} />
           </Route>
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
