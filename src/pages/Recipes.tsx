@@ -182,22 +182,22 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
-  // Show an instant Unsplash fallback for every AI recipe, then upgrade to
-  // a Pixabay food photo in the background — never block the UI on the network.
+  // Show an instant, query-specific Unsplash photo for every AI recipe, then
+  // upgrade to a verified TheMealDB / Pixabay photo in the background.
   useEffect(() => {
     aiRecipes.forEach((r, idx) => {
       const key = r.title.toLowerCase();
       if (r.image_url || generatedImages[key]) return;
-      // Instant fallback so the card never shows a loading state.
+      const q = r.imageSearchKeyword?.trim() || r.title;
       setGeneratedImages((prev) =>
-        prev[key] ? prev : { ...prev, [key]: unsplashFallback(r.title, idx) },
+        prev[key] ? prev : { ...prev, [key]: unsplashFallback(q, idx) },
       );
-      // Async upgrade — replaces with a real food photo if Pixabay returns one.
-      fetchPixabayImage(r.title, idx).then((img) => {
+      resolveRecipeImage(r.title, r.imageSearchKeyword, idx).then((img) => {
         if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
       });
     });
   }, [aiRecipes, generatedImages]);
+
 
   // --- Chatbot recipe-card builder ---
   const [chatPrompt, setChatPrompt] = useState("");
