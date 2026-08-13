@@ -130,11 +130,54 @@ const Recipes = () => {
         .map((p) => ({ name: p.name, daysUntilExpiry: daysUntil(p.expiry_date) }))
         .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry)
         .slice(0, 20);
-      const { data, error } = await supabase.functions.invoke("suggest-recipes", {
-        body: { items },
-      });
-      if (error) throw error;
-      setAiRecipes(((data?.recipes ?? []) as Recipe[]).map((r) => ({ ...r, source: "ai" })));
+
+      let suggestions: Recipe[] = [];
+      try {
+        const { data, error } = await supabase.functions.invoke("suggest-recipes", {
+          body: { items },
+        });
+        if (error) throw error;
+        suggestions = ((data?.recipes ?? []) as Recipe[]).map((r) => ({ ...r, source: "ai" as const }));
+      } catch (e) {
+        console.warn("suggest-recipes failed, falling back to TheMealDB", e);
+      }
+
+      // Ground each suggestion in TheMealDB: real instructions + verified photo
+      // when the dish exists there.
+      suggestions = await Promise.all(
+        suggestions.map(async (r) => {
+          const meal = await lookupMealByName(r.title);
+          if (!meal) return r;
+          return {
+            ...r,
+            title: meal.title,
+            description: r.description || meal.description,
+            ingredients: meal.ingredients.length ? meal.ingredients : r.ingredients,
+            steps: meal.steps.length ? meal.steps : r.steps,
+            image_url: meal.image_url ?? r.image_url ?? null,
+            prep_minutes: r.prep_minutes || meal.prep_minutes,
+          } as Recipe;
+        }),
+      );
+
+      // No AI suggestions? Serve real, verified recipes straight from TheMealDB.
+      if (suggestions.length === 0) {
+        const meals = await fetchRandomMeals(3);
+        suggestions = meals.map((m) => ({
+          title: m.title,
+          description: m.description,
+          prep_minutes: m.prep_minutes,
+          uses_items: [],
+          ingredients: m.ingredients,
+          steps: m.steps,
+          image_url: m.image_url,
+          imageSearchKeyword: m.title.toLowerCase(),
+          source: "ai" as const,
+        }));
+        if (suggestions.length === 0) throw new Error("Could not generate recipes");
+      }
+
+      setAiRecipes(suggestions);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not generate recipes";
       toast.error(msg);
@@ -142,6 +185,7 @@ const Recipes = () => {
       setLoading(false);
     }
   };
+
 
   const favorite = async (r: Recipe) => {
     if (!user) return;
