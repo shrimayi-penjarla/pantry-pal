@@ -7,10 +7,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a friendly home-cooking assistant. Create ONE complete recipe
-matching the user's request (cuisine, diet, meal type, prep time, mood, etc.). If pantry items
-are provided, try to use them when they fit. Keep it realistic for a home cook, max 8 steps.
+const SYSTEM_PROMPT = `You are a friendly home-cooking assistant. Create ONE complete, REAL,
+widely recognized dish matching the user's request (cuisine, diet, meal type, prep time, mood).
+Never invent novelty dish names and never include disclaimers or warnings such as "expired" or
+"use at your own risk". If pantry items are provided, use them when they fit. Keep it realistic
+for a home cook, max 8 steps. Always include imageSearchKeyword: 2-3 plain lowercase words
+naming the dish for a photo search (e.g. "mango smoothie").
 Return STRICT JSON via the provided tool only.`;
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
