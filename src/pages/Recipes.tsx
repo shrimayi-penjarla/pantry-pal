@@ -223,7 +223,7 @@ const Recipes = () => {
       const rec = (data as { recipe?: Recipe })?.recipe;
       if (!rec) throw new Error("No recipe returned");
       setChatRecipe({ ...rec, source: "ai" });
-      fetchPixabayImage(rec.title).then((img) => img && setChatImage(img));
+      resolveRecipeImage(rec.title, rec.imageSearchKeyword).then((img) => img && setChatImage(img));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not build a recipe");
     } finally {
