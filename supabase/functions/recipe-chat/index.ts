@@ -39,7 +39,7 @@ serve(async (req) => {
             .join("\n")}\n\nWhen suggesting recipes, lean on these items when possible — especially the ones expiring soonest.`
         : "The user has no pantry items listed; suggest recipes freely based on their request.";
 
-    const system = `You are a warm, encouraging home-cooking assistant inside a cozy cookbook app called FreshTrack.
+    const system = `You are a warm, encouraging home-cooking assistant inside a cozy cookbook app called PantryPal.
 Help the user find recipes that match their needs — dietary restrictions (vegan, gluten-free, dairy-free, halal, kosher, nut allergies, etc.), meal type (breakfast, lunch, dinner, snack, dessert), cuisine (Italian, Japanese, Mexican, Indian, Thai, Mediterranean, etc.), prep time, skill level, or mood.
 
 ${pantryLine}

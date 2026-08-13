@@ -48,7 +48,7 @@ export function notifyExpiringItems(
         ? `${it.name} expires today`
         : `${it.name} expires in ${it.daysLeft} day${it.daysLeft === 1 ? "" : "s"}`;
     try {
-      new Notification("FreshTrack", {
+      new Notification("PantryPal", {
         body: title + " — tap Recipes for ideas to use it up.",
         tag: key,
       });

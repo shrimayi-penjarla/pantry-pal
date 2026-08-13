@@ -32,7 +32,7 @@ const AppLayout = () => {
               <Leaf className="h-4 w-4" />
             </span>
             <div className="leading-tight min-w-0">
-              <p className="font-display text-xl tracking-tight">FreshTrack</p>
+              <p className="font-display text-xl tracking-tight">PantryPal</p>
               <p className="font-hand text-sm text-accent -mt-1 hidden sm:block">a kitchen journal</p>
             </div>
           </Link>

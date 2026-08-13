@@ -31,7 +31,7 @@ const Home = () => {
           <div className="space-y-4 text-center md:text-left">
             <p className="font-hand text-3xl text-accent leading-none">welcome to</p>
             <h1 className="font-display text-4xl sm:text-5xl tracking-tight leading-tight">
-              FreshTrack
+              PantryPal
               <span className="block font-hand text-2xl sm:text-3xl text-primary mt-1">
                 your smart fridge &amp; virtual cookbook
               </span>
