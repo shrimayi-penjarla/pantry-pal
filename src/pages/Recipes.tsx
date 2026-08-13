@@ -11,7 +11,9 @@ import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expir
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchPixabayImage, unsplashFallback } from "@/lib/pixabay";
+import { unsplashFallback } from "@/lib/pixabay";
+import { resolveRecipeImage } from "@/lib/recipeImages";
+import { fetchRandomMeals, lookupMealByName } from "@/lib/mealdb";
 
 interface Recipe {
   title: string;
@@ -21,9 +23,11 @@ interface Recipe {
   ingredients: string[];
   steps: string[];
   image_url?: string | null;
+  imageSearchKeyword?: string | null;
   source?: "ai" | "cookbook";
   cookbook_id?: string;
 }
+
 
 interface PantrySlim {
   id: string;
