@@ -126,12 +126,12 @@ const OAuthConsent = () => {
           </span>
           <p className="font-hand text-2xl text-accent mt-3">authorize a connection</p>
           <h1 className="font-display text-2xl tracking-tight mt-1">
-            Connect {clientName} to FreshTrack
+            Connect {clientName} to PantryPal
           </h1>
         </div>
 
         <p className="text-sm text-muted-foreground mt-4">
-          <strong className="text-foreground">{clientName}</strong> will be able to call FreshTrack's
+          <strong className="text-foreground">{clientName}</strong> will be able to call PantryPal's
           enabled tools while you are signed in — reading and updating your pantry, cookbook, and shopping list on your behalf.
         </p>
 
@@ -149,7 +149,7 @@ const OAuthConsent = () => {
         )}
 
         <p className="text-xs text-muted-foreground italic mt-4">
-          This does not bypass FreshTrack's permissions — the connection acts as you.
+          This does not bypass PantryPal's permissions — the connection acts as you.
         </p>
 
         <div className="flex gap-2 mt-6">

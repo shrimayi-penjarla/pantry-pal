@@ -11,7 +11,9 @@ import { daysUntil, expiryLabel, expiryStatus, statusClasses } from "@/lib/expir
 import RecipeImage from "@/components/RecipeImage";
 import RecipeDetailDialog from "@/components/RecipeDetailDialog";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchPixabayImage, unsplashFallback } from "@/lib/pixabay";
+import { unsplashFallback } from "@/lib/pixabay";
+import { resolveRecipeImage } from "@/lib/recipeImages";
+import { fetchRandomMeals, lookupMealByName } from "@/lib/mealdb";
 
 interface Recipe {
   title: string;
@@ -21,9 +23,11 @@ interface Recipe {
   ingredients: string[];
   steps: string[];
   image_url?: string | null;
+  imageSearchKeyword?: string | null;
   source?: "ai" | "cookbook";
   cookbook_id?: string;
 }
+
 
 interface PantrySlim {
   id: string;
@@ -126,11 +130,54 @@ const Recipes = () => {
         .map((p) => ({ name: p.name, daysUntilExpiry: daysUntil(p.expiry_date) }))
         .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry)
         .slice(0, 20);
-      const { data, error } = await supabase.functions.invoke("suggest-recipes", {
-        body: { items },
-      });
-      if (error) throw error;
-      setAiRecipes(((data?.recipes ?? []) as Recipe[]).map((r) => ({ ...r, source: "ai" })));
+
+      let suggestions: Recipe[] = [];
+      try {
+        const { data, error } = await supabase.functions.invoke("suggest-recipes", {
+          body: { items },
+        });
+        if (error) throw error;
+        suggestions = ((data?.recipes ?? []) as Recipe[]).map((r) => ({ ...r, source: "ai" as const }));
+      } catch (e) {
+        console.warn("suggest-recipes failed, falling back to TheMealDB", e);
+      }
+
+      // Ground each suggestion in TheMealDB: real instructions + verified photo
+      // when the dish exists there.
+      suggestions = await Promise.all(
+        suggestions.map(async (r) => {
+          const meal = await lookupMealByName(r.title);
+          if (!meal) return r;
+          return {
+            ...r,
+            title: meal.title,
+            description: r.description || meal.description,
+            ingredients: meal.ingredients.length ? meal.ingredients : r.ingredients,
+            steps: meal.steps.length ? meal.steps : r.steps,
+            image_url: meal.image_url ?? r.image_url ?? null,
+            prep_minutes: r.prep_minutes || meal.prep_minutes,
+          } as Recipe;
+        }),
+      );
+
+      // No AI suggestions? Serve real, verified recipes straight from TheMealDB.
+      if (suggestions.length === 0) {
+        const meals = await fetchRandomMeals(3);
+        suggestions = meals.map((m) => ({
+          title: m.title,
+          description: m.description,
+          prep_minutes: m.prep_minutes,
+          uses_items: [],
+          ingredients: m.ingredients,
+          steps: m.steps,
+          image_url: m.image_url,
+          imageSearchKeyword: m.title.toLowerCase(),
+          source: "ai" as const,
+        }));
+        if (suggestions.length === 0) throw new Error("Could not generate recipes");
+      }
+
+      setAiRecipes(suggestions);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not generate recipes";
       toast.error(msg);
@@ -138,6 +185,7 @@ const Recipes = () => {
       setLoading(false);
     }
   };
+
 
   const favorite = async (r: Recipe) => {
     if (!user) return;
@@ -178,22 +226,22 @@ const Recipes = () => {
     return out;
   }, [cookbookMatches, aiRecipes]);
 
-  // Show an instant Unsplash fallback for every AI recipe, then upgrade to
-  // a Pixabay food photo in the background — never block the UI on the network.
+  // Show an instant, query-specific Unsplash photo for every AI recipe, then
+  // upgrade to a verified TheMealDB / Pixabay photo in the background.
   useEffect(() => {
     aiRecipes.forEach((r, idx) => {
       const key = r.title.toLowerCase();
       if (r.image_url || generatedImages[key]) return;
-      // Instant fallback so the card never shows a loading state.
+      const q = r.imageSearchKeyword?.trim() || r.title;
       setGeneratedImages((prev) =>
-        prev[key] ? prev : { ...prev, [key]: unsplashFallback(r.title, idx) },
+        prev[key] ? prev : { ...prev, [key]: unsplashFallback(q, idx) },
       );
-      // Async upgrade — replaces with a real food photo if Pixabay returns one.
-      fetchPixabayImage(r.title, idx).then((img) => {
+      resolveRecipeImage(r.title, r.imageSearchKeyword, idx).then((img) => {
         if (img) setGeneratedImages((prev) => ({ ...prev, [key]: img }));
       });
     });
   }, [aiRecipes, generatedImages]);
+
 
   // --- Chatbot recipe-card builder ---
   const [chatPrompt, setChatPrompt] = useState("");
@@ -219,7 +267,7 @@ const Recipes = () => {
       const rec = (data as { recipe?: Recipe })?.recipe;
       if (!rec) throw new Error("No recipe returned");
       setChatRecipe({ ...rec, source: "ai" });
-      fetchPixabayImage(rec.title).then((img) => img && setChatImage(img));
+      resolveRecipeImage(rec.title, rec.imageSearchKeyword).then((img) => img && setChatImage(img));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not build a recipe");
     } finally {

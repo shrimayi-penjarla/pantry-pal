@@ -216,9 +216,9 @@ var add_shopping_item_default = defineTool6({
 var projectRef = "pzoqlzigqbsrlkewhbod";
 var mcp_default = defineMcp({
   name: "freshtrack-mcp",
-  title: "FreshTrack",
+  title: "PantryPal",
   version: "0.1.0",
-  instructions: "Tools for FreshTrack, a family pantry & cookbook app. Read and update the signed-in family's pantry, saved cookbook recipes, and shopping list.",
+  instructions: "Tools for PantryPal, a family pantry & cookbook app. Read and update the signed-in family's pantry, saved cookbook recipes, and shopping list.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
